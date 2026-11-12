@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Імпорт студентів</h1>
+<p>CSV UTF-8: <code>username,first_name,last_name,institution_slug</code>. До 1000 записів. Індивідуальні тимчасові паролі будуть завантажені одним CSV-файлом. Збережіть його в безпечному місці.</p>
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}{{ form.as_p }}
+<button type="submit" class="default">Імпортувати</button>
+</form>
+{% endblock %}

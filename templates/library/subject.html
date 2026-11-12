@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ subject.title }} · IT STEP{% endblock %}
+{% block content %}
+<div class="container page">
+<a href="{% url 'catalog' %}" class="back">← До каталогу</a>
+<h1>{{ subject.title }}</h1><p>{{ subject.institution.name }}</p>
+<div class="table-wrap"><table><thead><tr><th>№</th><th>Назва та автор</th><th>Опис</th><th>Файл</th></tr></thead><tbody>
+{% for book in books %}
+<tr><td>{{ forloop.counter }}</td><td><b>{{ book.title }}</b><small>{{ book.author }}</small></td>
+<td>{{ book.description|default:'—' }}</td>
+<td><a class="download" href="{% url 'download_book' book.id %}">⬇ Завантажити {{ book.file_extension }}</a></td></tr>
+{% empty %}<tr><td colspan="4">Літературу ще не додано.</td></tr>{% endfor %}
+</tbody></table></div>
+</div>
+{% endblock %}

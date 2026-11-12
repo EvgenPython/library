@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Репозиторій робіт · IT STEP{% endblock %}
+{% block content %}
+<div class="container page">
+<span class="kicker">НАВЧАЛЬНІ МАТЕРІАЛИ</span><h1>Репозиторій курсових і дипломних робіт</h1>
+<p>Архіви студентських робіт — пошук за закладом, дисципліною, групою та роком.</p>
+<form class="panel filters" method="get">
+<div><label>Заклад</label><select name="institution"><option value="">Усі доступні</option>{% for i in institutions %}<option value="{{ i.id }}" {% if selected.institution == i.id|stringformat:'s' %}selected{% endif %}>{{ i.name }}</option>{% endfor %}</select></div>
+<div><label>Тип роботи</label><select name="type"><option value="">Усі</option><option value="course" {% if selected.type == 'course' %}selected{% endif %}>Курсова</option><option value="diploma" {% if selected.type == 'diploma' %}selected{% endif %}>Дипломна</option></select></div>
+<div><label>Дисципліна</label><select name="subject"><option value="">Усі</option>{% for s in subjects %}<option value="{{ s.id }}" {% if selected.subject == s.id|stringformat:'s' %}selected{% endif %}>{{ s.title }} · {{ s.institution.name }}</option>{% endfor %}</select></div>
+<div><label>Рік</label><select name="year"><option value="">Усі</option>{% for year in years %}<option value="{{ year }}" {% if selected.year == year|stringformat:'s' %}selected{% endif %}>{{ year }}</option>{% endfor %}</select></div>
+<div><label>Група</label><select name="group"><option value="">Усі</option>{% for group in groups %}<option value="{{ group }}" {% if selected.group == group %}selected{% endif %}>{{ group }}</option>{% endfor %}</select></div>
+<div><label>Пошук</label><input name="q" value="{{ selected.q }}" placeholder="Назва або опис"></div>
+<button class="primary" type="submit">Знайти</button><a class="secondary" href="{% url 'works_repository' %}">Скинути</a>
+</form>
+<div class="table-wrap"><table><thead><tr><th>Назва архіву</th><th>Тип</th><th>Дисципліна</th><th>Група</th><th>Рік</th><th>ZIP</th></tr></thead><tbody>
+{% for work in archives %}
+<tr><td><b>{{ work.title }}</b><small>{{ work.description|truncatechars:110 }}</small></td><td>{{ work.get_work_type_display }}</td>
+<td>{{ work.subject.title }}</td><td>{{ work.group }}</td><td>{{ work.year }}</td>
+<td><a class="download" href="{% url 'download_work_archive' work.pk %}">⬇ ZIP</a></td></tr>
+{% empty %}<tr><td colspan="6">Архівів за обраними фільтрами немає.</td></tr>{% endfor %}
+</tbody></table></div>
+</div>
+{% endblock %}

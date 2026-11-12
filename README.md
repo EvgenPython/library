@@ -1,22 +1,30 @@
 # IT STEP — електронна бібліотека
 
-Django-застосунок для закритої бібліотеки коледжу й університету з каталогом літератури та ZIP-репозиторієм курсових і дипломних робіт.
+Закрита Django-бібліотека для коледжу та університету: дисципліни, книги й ZIP-архіви курсових та дипломних робіт. Облікові записи створює тільки адміністратор; публічної реєстрації немає.
 
-**Доступ:** облікові записи створює тільки адміністрація через Django Admin. Книги та архіви завантажуються лише після авторизації та перевірки дозволеного закладу.
-
-## Локальний запуск
+## Запуск
 
 ```bash
 python -m venv .venv
 # Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
+# Linux: source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env # Windows PowerShell: Copy-Item .env.example .env
+cp .env.example .env
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Головна `/` — сторінка входу. `/catalog/` — дисципліни; `/repository/` — студентські роботи; `/admin/` — керування даними.
+Шляхи: `/` — вхід; `/catalog/` — бібліотека; `/repository/` — ZIP-архіви; `/admin/` — адміністрування. Імпорт студентів: Admin → Профілі студентів → Імпортувати студентів (CSV). Поля: `username,first_name,last_name,institution_slug`.
 
-До продакшену встановіть `DJANGO_DEBUG=0`, випадковий `DJANGO_SECRET_KEY`, HTTPS, правильний `DJANGO_ALLOWED_HOSTS`, приватне сховище та резервне копіювання. Реальні книжки, ZIP, паролі та `db.sqlite3` не комітити. Завантажувати лише матеріали з відповідними правами на поширення.
+**Безпека:** перед публікацією налаштуйте секретний ключ, HTTPS, домен, резервні копії, належні права на навчальну літературу і архіви. `.env`, `db.sqlite3`, приватні файли й паролі не завантажувати в GitHub.
+
+## Оновлення сервера
+
+```bash
+git pull --ff-only origin main
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py collectstatic --noinput
+# далі перезапуск вебсервісу
+```

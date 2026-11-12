@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Каталог · IT STEP{% endblock %}
+{% block content %}
+<div class="container page">
+<div class="page-head"><span class="kicker">ОСОБИСТИЙ КАБІНЕТ</span><h1>Каталог навчальних матеріалів</h1><p>Оберіть заклад освіти та потрібну дисципліну.</p></div>
+<div class="panel">
+<form action="{% url 'select_institution' %}" method="post" class="filter-line">{% csrf_token %}
+<label for="institution">Заклад</label><select id="institution" name="institution_id">
+{% for i in institutions %}<option value="{{ i.id }}" {% if active_institution.id == i.id %}selected{% endif %}>{{ i.name }}</option>{% endfor %}
+</select><button class="primary" type="submit">Обрати</button>
+</form>
+<form method="get" class="filter-line">
+<input type="search" name="q" value="{{ q }}" placeholder="Пошук дисципліни..."><button class="primary" type="submit">Знайти</button>
+</form>
+</div>
+{% if active_institution %}
+<div class="cards">{% for subject in subjects %}
+<a class="subject-card" href="{% url 'subject_detail' subject.id %}">
+<div class="book-icon">▤</div><h3>{{ subject.title }}</h3><p>{{ subject.description|truncatechars:110 }}</p>
+<span>{{ subject.book_count }} книг →</span></a>
+{% empty %}<p class="empty">Дисциплін поки немає.</p>{% endfor %}</div>
+{% else %}<div class="notice">Адміністрація ще не надала доступ до жодного закладу освіти.</div>{% endif %}
+</div>
+{% endblock %}
