@@ -1,15 +1,19 @@
 from pathlib import Path
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.views import PasswordChangeView
+from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.db.models import Count, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
-from .models import Institution, Subject, Book, StudentProfile, StudentWorkArchive
+from .models import Institution, Subject, Book, StudentProfile, StudentWorkArchive, TeacherProfile, StudentActivity
+from .activity import track_student
 
 def accessible_institutions(request):
-    if request.user.is_staff:
+    if request.user.is_superuser:
         return Institution.objects.filter(is_active=True)
+    if TeacherProfile.objects.filter(user=request.user).exists():
+        return Institution.objects.filter(is_active=True, subjects__teachers__user=request.user).distinct()
     profile = StudentProfile.objects.filter(user=request.user).first()
     if profile is None:
         return Institution.objects.none()
@@ -21,6 +25,8 @@ def context_for(request):
     active = None
     if profile and profile.active_institution_id:
         active = institutions.filter(pk=profile.active_institution_id).first()
+    elif not profile:
+        active = institutions.filter(pk=request.session.get('library_institution_id')).first()
     return institutions, active or institutions.first(), profile
 
 @login_required
@@ -33,6 +39,7 @@ def catalog(request):
             book_count=Count('books', filter=Q(books__is_published=True)))
         if q:
             subjects = subjects.filter(Q(title__icontains=q) | Q(description__icontains=q))
+    track_student(request, StudentActivity.CATALOG, active.name if active else '')
     return render(request, 'library/home.html', {
         'institutions': institutions, 'active_institution': active,
         'profile': profile, 'subjects': subjects, 'q': q,
@@ -42,15 +49,17 @@ def catalog(request):
 @require_POST
 def select_institution(request):
     institution = get_object_or_404(accessible_institutions(request), pk=request.POST.get('institution_id'))
-    profile, _ = StudentProfile.objects.get_or_create(user=request.user)
-    profile.active_institution = institution
-    profile.save(update_fields=['active_institution'])
+    if StudentProfile.objects.filter(user=request.user).exists() and not TeacherProfile.objects.filter(user=request.user).exists():
+        StudentProfile.objects.filter(user=request.user).update(active_institution=institution)
+    else:
+        request.session['library_institution_id'] = institution.pk
     return redirect('catalog')
 
 @login_required
 def subject_detail(request, pk):
     institutions, active, profile = context_for(request)
     subject = get_object_or_404(Subject, pk=pk, is_active=True, institution__in=institutions)
+    track_student(request, StudentActivity.SUBJECT, f'{subject.institution.name} / {subject.title}')
     return render(request, 'library/subject.html', {
         'subject': subject, 'books': subject.books.filter(is_published=True),
         'institutions': institutions, 'active_institution': active, 'profile': profile,
@@ -65,6 +74,7 @@ def download_book(request, pk):
         stream = book.file.open('rb')
     except (FileNotFoundError, OSError, ValueError):
         raise Http404('Файл недоступний')
+    track_student(request, StudentActivity.BOOK_DOWNLOAD, book.title)
     response = FileResponse(stream, as_attachment=True,
                             filename=f'book-{book.pk}{Path(book.file.name).suffix.lower()}',
                             content_type='application/octet-stream')
@@ -96,6 +106,7 @@ def works_repository(request):
     q = request.GET.get('q', '').strip()[:100]
     if q:
         archives = archives.filter(Q(title__icontains=q) | Q(description__icontains=q))
+    track_student(request, StudentActivity.REPOSITORY, 'Репозиторій студентських робіт')
     return render(request, 'library/repository.html', {
         'archives': archives[:200], 'institutions': institutions,
         'subjects': Subject.objects.filter(is_active=True, institution__in=institutions),
@@ -113,6 +124,7 @@ def download_work_archive(request, pk):
         stream = work.file.open('rb')
     except (FileNotFoundError, OSError, ValueError):
         raise Http404('Архів недоступний')
+    track_student(request, StudentActivity.ARCHIVE_DOWNLOAD, work.title)
     response = FileResponse(stream, as_attachment=True,
         filename=f'works-{work.pk}-{work.year}.zip', content_type='application/zip')
     response['Cache-Control'] = 'private, no-store'
@@ -124,3 +136,16 @@ class StudentPasswordChangeView(PasswordChangeView):
         result = super().form_valid(form)
         StudentProfile.objects.filter(user=self.request.user).update(must_change_password=False)
         return result
+
+
+class RoleLoginView(LoginView):
+    template_name = 'library/landing.html'
+    redirect_authenticated_user = True
+
+    def get_success_url(self):
+        requested = self.get_redirect_url()
+        if requested:
+            return requested
+        if TeacherProfile.objects.filter(user=self.request.user).exists() and not self.request.user.is_superuser:
+            return reverse('teacher_dashboard')
+        return reverse('catalog')

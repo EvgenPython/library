@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}{% if editing %}Редагування{% else %}Додати літературу{% endif %} · IT STEP{% endblock %}
+{% block content %}
+<div class="container page teacher-form-page">
+  <a class="back" href="{% url 'teacher_dashboard' %}">← До кабінету викладача</a>
+  <div class="page-head">
+    <span class="kicker">ЛІТЕРАТУРА</span>
+    <h1>{% if editing %}Редагування матеріалу{% else %}Додати навчальну літературу{% endif %}</h1>
+    <p>Матеріали доступні лише користувачам відповідного закладу після входу до бібліотеки.</p>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="panel teacher-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="error">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}
+      <div class="teacher-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {% if field.errors %}<div class="error">{{ field.errors }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <p class="teacher-hint">Дозволені PDF, EPUB, DOC, DOCX, TXT, RTF, DJVU. Максимальний розмір — 50 МБ.</p>
+    <button class="primary" type="submit">{% if editing %}Зберегти зміни{% else %}Опублікувати матеріал{% endif %}</button>
+  </form>
+</div>
+{% endblock %}

@@ -42,6 +42,7 @@ def work_archive_path(instance, filename):
     return f'works/{uuid4().hex}.zip'
 
 class Institution(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     name = models.CharField('Назва закладу', max_length=255)
     slug = models.SlugField('Код закладу', unique=True)
     description = models.TextField('Опис', blank=True)
@@ -54,6 +55,7 @@ class Institution(models.Model):
         return self.name
 
 class Subject(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     institution = models.ForeignKey(Institution, on_delete=models.PROTECT, related_name='subjects', verbose_name='Заклад')
     title = models.CharField('Дисципліна', max_length=255)
     description = models.TextField('Опис', blank=True)
@@ -68,12 +70,15 @@ class Subject(models.Model):
         return f'{self.title} · {self.institution}'
 
 class Book(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name='books', verbose_name='Дисципліна')
     title = models.CharField('Назва книги', max_length=350)
     author = models.CharField('Автор', max_length=255, blank=True)
     description = models.TextField('Опис', blank=True)
     file = models.FileField('Файл книги', storage=private_storage, upload_to=book_path, validators=[validate_book_file])
     is_published = models.BooleanField('Опубліковано', default=True)
+    uploaded_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='uploaded_books', verbose_name='Хто додав')
     added_at = models.DateTimeField('Додано', auto_now_add=True)
     class Meta:
         verbose_name = 'Книга'
@@ -86,6 +91,7 @@ class Book(models.Model):
         return Path(self.file.name).suffix[1:].upper()
 
 class StudentProfile(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
     institutions = models.ManyToManyField(Institution, blank=True, related_name='students', verbose_name='Дозволені заклади')
     active_institution = models.ForeignKey(Institution, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name='Обраний заклад')
@@ -97,6 +103,7 @@ class StudentProfile(models.Model):
         return self.user.get_full_name() or self.user.username
 
 class StudentWorkArchive(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     TYPES = [('course', 'Курсова робота'), ('diploma', 'Дипломна робота')]
     subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name='work_archives', verbose_name='Дисципліна')
     title = models.CharField('Назва архіву', max_length=350)
@@ -116,3 +123,77 @@ class StudentWorkArchive(models.Model):
     def clean(self):
         if self.year and not 2000 <= self.year <= date.today().year + 1:
             raise ValidationError({'year': 'Некоректний рік.'})
+
+
+class TeacherProfile(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='teacher_profile',
+                                verbose_name='Користувач')
+    subjects = models.ManyToManyField(Subject, blank=True, related_name='teachers',
+                                      verbose_name='Закріплені дисципліни')
+
+    class Meta:
+        verbose_name = 'Профіль викладача'
+        verbose_name_plural = 'Профілі викладачів'
+
+    def __str__(self):
+        return self.user.get_full_name() or self.user.username
+
+
+class StudentActivity(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
+    LOGIN = 'login'
+    CATALOG = 'catalog'
+    SUBJECT = 'subject'
+    REPOSITORY = 'repository'
+    BOOK_DOWNLOAD = 'book_download'
+    ARCHIVE_DOWNLOAD = 'archive_download'
+    ACTIONS = [
+        (LOGIN, 'Вхід до кабінету'),
+        (CATALOG, 'Каталог'),
+        (SUBJECT, 'Перегляд дисципліни'),
+        (REPOSITORY, 'Репозиторій'),
+        (BOOK_DOWNLOAD, 'Запит на завантаження книги'),
+        (ARCHIVE_DOWNLOAD, 'Запит на завантаження архіву'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='library_activity',
+                             verbose_name='Студент')
+    action = models.CharField('Дія', max_length=30, choices=ACTIONS, db_index=True)
+    item_title = models.CharField('Що переглядав', max_length=350, blank=True)
+    created_at = models.DateTimeField('Дата й час', auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = 'Дія студента'
+        verbose_name_plural = 'Активність студентів'
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['user', '-created_at'], name='student_activity_user_ts')]
+
+    def __str__(self):
+        return f'{self.user} · {self.get_action_display()} · {self.created_at:%d.%m.%Y %H:%M}'
+
+
+class BookAudit(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
+    ADDED = 'added'
+    EDITED = 'edited'
+    DELETED = 'deleted'
+    ACTIONS = [(ADDED, 'Додано'), (EDITED, 'Змінено'), (DELETED, 'Видалено')]
+    actor = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL,
+                              related_name='book_audits', verbose_name='Користувач')
+    actor_name = models.CharField('Логін на момент дії', max_length=150)
+    action = models.CharField('Дія', max_length=12, choices=ACTIONS)
+    book_id = models.PositiveBigIntegerField('ID книги')
+    book_title = models.CharField('Назва книги', max_length=350)
+    subject_title = models.CharField('Дисципліна', max_length=255)
+    created_at = models.DateTimeField('Дата й час', auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = 'Історія змін літератури'
+        verbose_name_plural = 'Історія змін літератури'
+        ordering = ['-created_at']
+
+    @classmethod
+    def log(cls, actor, action, book):
+        cls.objects.create(actor=actor, actor_name=actor.username, action=action,
+                           book_id=book.pk, book_title=book.title,
+                           subject_title=book.subject.title)

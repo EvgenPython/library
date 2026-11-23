@@ -13,10 +13,11 @@
 {% if user.is_authenticated %}
 <a href="{% url 'catalog' %}">Бібліотека</a>
 <a href="{% url 'works_repository' %}">Репозиторій робіт</a>
-{% if user.is_staff %}<a href="{% url 'admin:index' %}">Адмінка</a>{% endif %}
+{% if user.is_superuser %}<a href="{% url 'admin:index' %}">Адмінка</a>{% endif %}
+{% if user.teacher_profile and not user.is_superuser %}<a href="{% url 'teacher_dashboard' %}">Кабінет викладача</a>{% endif %}
 <form action="{% url 'logout' %}" method="post" class="inline">{% csrf_token %}<button class="nav-button" type="submit">Вийти</button></form>
 {% else %}<a href="{% url 'login' %}">Увійти</a>{% endif %}
 </nav></div></header>
-<main>{% block content %}{% endblock %}</main>
+<main>{% if messages %}<div class="container alerts">{% for message in messages %}<div class="notice" role="status">{{ message }}</div>{% endfor %}</div>{% endif %}{% block content %}{% endblock %}</main>
 <footer><div class="container footer-inner"><a class="logo" href="{% url 'home' %}">IT STEP<small>c o l l e g e</small></a><span>© {% now 'Y' %} IT STEP. Доступ лише для авторизованих користувачів.</span></div></footer>
 </body></html>

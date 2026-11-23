@@ -1,9 +1,12 @@
 from django.urls import path
-from django.contrib.auth.views import LoginView
+from .teacher_views import teacher_dashboard, teacher_add_book, teacher_edit_book
 from . import views
 
 urlpatterns = [
-    path('', LoginView.as_view(template_name='library/landing.html', redirect_authenticated_user=True), name='home'),
+    path('', views.RoleLoginView.as_view(), name='home'),
+    path('teacher/', teacher_dashboard, name='teacher_dashboard'),
+    path('teacher/books/add/', teacher_add_book, name='teacher_add_book'),
+    path('teacher/books/<int:pk>/edit/', teacher_edit_book, name='teacher_edit_book'),
     path('catalog/', views.catalog, name='catalog'),
     path('institution/select/', views.select_institution, name='select_institution'),
     path('subjects/<int:pk>/', views.subject_detail, name='subject_detail'),
