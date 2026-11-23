@@ -42,6 +42,7 @@ def work_archive_path(instance, filename):
     return f'works/{uuid4().hex}.zip'
 
 class Institution(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     name = models.CharField('Назва закладу', max_length=255)
     slug = models.SlugField('Код закладу', unique=True)
     description = models.TextField('Опис', blank=True)
@@ -54,6 +55,7 @@ class Institution(models.Model):
         return self.name
 
 class Subject(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     institution = models.ForeignKey(Institution, on_delete=models.PROTECT, related_name='subjects', verbose_name='Заклад')
     title = models.CharField('Дисципліна', max_length=255)
     description = models.TextField('Опис', blank=True)
@@ -68,6 +70,7 @@ class Subject(models.Model):
         return f'{self.title} · {self.institution}'
 
 class Book(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name='books', verbose_name='Дисципліна')
     title = models.CharField('Назва книги', max_length=350)
     author = models.CharField('Автор', max_length=255, blank=True)
@@ -88,6 +91,7 @@ class Book(models.Model):
         return Path(self.file.name).suffix[1:].upper()
 
 class StudentProfile(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
     institutions = models.ManyToManyField(Institution, blank=True, related_name='students', verbose_name='Дозволені заклади')
     active_institution = models.ForeignKey(Institution, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name='Обраний заклад')
@@ -99,6 +103,7 @@ class StudentProfile(models.Model):
         return self.user.get_full_name() or self.user.username
 
 class StudentWorkArchive(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     TYPES = [('course', 'Курсова робота'), ('diploma', 'Дипломна робота')]
     subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name='work_archives', verbose_name='Дисципліна')
     title = models.CharField('Назва архіву', max_length=350)
@@ -121,6 +126,7 @@ class StudentWorkArchive(models.Model):
 
 
 class TeacherProfile(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='teacher_profile',
                                 verbose_name='Користувач')
     subjects = models.ManyToManyField(Subject, blank=True, related_name='teachers',
@@ -135,6 +141,7 @@ class TeacherProfile(models.Model):
 
 
 class StudentActivity(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     LOGIN = 'login'
     CATALOG = 'catalog'
     SUBJECT = 'subject'
@@ -166,6 +173,7 @@ class StudentActivity(models.Model):
 
 
 class BookAudit(models.Model):
+    id = models.BigAutoField(primary_key=True, serialize=False)
     ADDED = 'added'
     EDITED = 'edited'
     DELETED = 'deleted'
