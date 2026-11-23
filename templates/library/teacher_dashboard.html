@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Кабінет викладача · IT STEP{% endblock %}
+{% block content %}
+<div class="container page">
+  <div class="page-head">
+    <span class="kicker">ОСОБИСТИЙ КАБІНЕТ ВИКЛАДАЧА</span>
+    <h1>Моя навчальна література</h1>
+    <p>Завантажуйте книги та навчальні матеріали до закріплених дисциплін.</p>
+    {% if teacher_subjects %}<a class="primary teacher-action" href="{% url 'teacher_add_book' %}">+ Додати літературу</a>{% endif %}
+  </div>
+  <section class="panel">
+    <h2>Мої дисципліни</h2>
+    {% for subject in teacher_subjects %}
+      <span class="teacher-tag">{{ subject.title }} · {{ subject.institution.name }}</span>
+    {% empty %}
+      <p>Адміністратор ще не призначив вам дисциплін. Зверніться до адміністрації закладу.</p>
+    {% endfor %}
+  </section>
+  <h2>Додані мною матеріали</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Назва</th><th>Дисципліна</th><th>Дата</th><th>Статус</th><th>Дії</th></tr></thead>
+    <tbody>
+    {% for book in teacher_books %}
+    <tr>
+      <td><b>{{ book.title }}</b><small>{{ book.author }}</small></td>
+      <td>{{ book.subject.title }} · {{ book.subject.institution.name }}</td>
+      <td>{{ book.added_at|date:"d.m.Y H:i" }}</td>
+      <td>{% if book.is_published %}Опубліковано{% else %}Приховано адміністратором{% endif %}</td>
+      <td><a href="{% url 'teacher_edit_book' book.pk %}">Редагувати</a></td>
+    </tr>
+    {% empty %}<tr><td colspan="5">Ви ще не додали літературу.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}
