@@ -3,6 +3,7 @@
 {% block content %}
 <div class="container page">
 <div class="page-head"><span class="kicker">ОСОБИСТИЙ КАБІНЕТ</span><h1>Каталог навчальних матеріалів</h1><p>Оберіть заклад освіти та потрібну дисципліну.</p></div>
+{% if profile and not user.teacher_profile %}<p class="notice">У кабінеті фіксуються час входу, перегляди дисциплін і запити на завантаження матеріалів для обліку користування бібліотекою.</p>{% endif %}
 <div class="panel">
 <form action="{% url 'select_institution' %}" method="post" class="filter-line">{% csrf_token %}
 <label for="institution">Заклад</label><select id="institution" name="institution_id">
